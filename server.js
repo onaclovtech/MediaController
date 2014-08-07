@@ -6,23 +6,36 @@
 // Next we'll do an SSDP search and find any "interesting" devices (particularly your chromecast or roku devices).
 // Needs cleanup but this reports those devices
 
+//https://www.firebase.com/docs/web/quickstart.html
 var connect = require('connect'),
     http = require('http');
+var path_to_share = ''
 connect()
-    .use(connect.static('path you wish to serve'))
-    .use(connect.directory('path you wish to serve'))
-    .listen(80); // I use 80 on my local network, you could use 8080
+    .use(connect.static(path_to_share))
+    .use(connect.directory(path_to_share))
+    .listen(80);
 
 
-var FB_URL = "";
+var FB_URL = '';
 var Firebase = require('firebase');
 var myRootRef = new Firebase(FB_URL);
-var ip = '';
+var os = require('os')
+
+var interfaces = os.networkInterfaces();
+var addresses = [];
+for (k in interfaces) {
+    for (k2 in interfaces[k]) {
+        var address = interfaces[k][k2];
+        if (address.family == 'IPv4' && !address.internal) {
+            addresses.push(address.address)
+        }
+    }
+}
+
 myRootRef.push({
     "type": "local",
-    "ip": ip
+    "ip": addresses[0]
 });
-
 
 var dgram = require('dgram'); // dgram is UDP
 // Listen for responses
@@ -39,7 +52,6 @@ function listen(port) {
     server.bind(port); // Bind to the random port we were given when sending the message, not 1900
     // Give it a while for responses to come in
     setTimeout(function() {
-        //console.log("Finished waiting");
         server.close();
     }, 20000);
 }
