@@ -15,7 +15,7 @@ connect()
     .use(connect.directory(path_to_share))
     .listen(80);
 
-
+devices = [];
 var FB_URL = '';
 var Firebase = require('firebase');
 var myRootRef = new Firebase(FB_URL);
@@ -32,10 +32,10 @@ for (k in interfaces) {
     }
 }
 
-myRootRef.push({
+devices.push(myRootRef.push({
     "type": "local",
     "ip": addresses[0]
-});
+}));
 
 var dgram = require('dgram'); // dgram is UDP
 // Listen for responses
@@ -43,15 +43,16 @@ function listen(port) {
     var server = dgram.createSocket("udp4");
     server.on("message", function(msg, rinfo) {
         //console.log("server got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
-        myRootRef.push({
+        devices.push(myRootRef.push({
             "type": "roku",
             "ip": rinfo.address,
             "port": rinfo.port
-        });
+        }));
     });
     server.bind(port); // Bind to the random port we were given when sending the message, not 1900
     // Give it a while for responses to come in
     setTimeout(function() {
+        //console.log("Finished waiting");
         server.close();
     }, 20000);
 }
@@ -73,3 +74,27 @@ function search() {
     });
 }
 search();
+
+
+
+process.stdin.resume(); //so the program will not close instantly
+function delete_fb_entries() {
+    return function() {
+        for (i = 0; i < devices.length; i++) {
+            devices[i].remove();
+        }
+        process.exit()
+    }
+}
+
+/*
+* Remove Entries of Firebase for anything this guy found when app is closing
+*/
+// catches Exit event
+process.on('exit', delete_fb_entries());
+
+//catches ctrl+c event
+process.on('SIGINT', delete_fb_entries());
+
+//catches uncaught exceptions
+process.on('uncaughtException', delete_fb_entries());
