@@ -1,11 +1,9 @@
 /*
-* MediaController v0.0.1
-*/
-
+ * MediaController v0.0.1
+ */
 // Now if you look at FB_URL you'll see a new entry with Local and IP address
 // Next we'll do an SSDP search and find any "interesting" devices (particularly your chromecast or roku devices).
 // Needs cleanup but this reports those devices
-
 //https://www.firebase.com/docs/web/quickstart.html
 var connect = require('connect'),
     http = require('http');
@@ -14,7 +12,7 @@ connect()
     .use(connect.static(path_to_share))
     .use(connect.directory(path_to_share))
     .listen(80);
-
+console.log("created server");
 devices = [];
 var FB_URL = '';
 var Firebase = require('firebase');
@@ -37,22 +35,24 @@ devices.push(myRootRef.push({
     "ip": addresses[0]
 }));
 
+console.log("Found my IP");
+var roku_index
 var dgram = require('dgram'); // dgram is UDP
 // Listen for responses
 function listen(port) {
     var server = dgram.createSocket("udp4");
     server.on("message", function(msg, rinfo) {
-        //console.log("server got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
         devices.push(myRootRef.push({
             "type": "roku",
             "ip": rinfo.address,
-            "port": rinfo.port
+            "port": rinfo.port,
+            "state": "waiting"
         }));
+        console.log("Got the Roku's IP");
     });
     server.bind(port); // Bind to the random port we were given when sending the message, not 1900
     // Give it a while for responses to come in
     setTimeout(function() {
-        //console.log("Finished waiting");
         server.close();
     }, 20000);
 }
@@ -77,6 +77,183 @@ search();
 
 
 
+
+/* 
+ * roku control
+ */
+function send_message(options) {
+    console.log(options);
+    var req = http.request(options, function(res) {
+        console.log('STATUS: ' + res.statusCode);
+        console.log('HEADERS: ' + JSON.stringify(res.headers));
+        res.setEncoding('utf8');
+        res.on('data', function(chunk) {
+            console.log('BODY: ' + chunk);
+        });
+    });
+    req.on('error', function(e) {
+        console.log('problem with request: ' + e.message);
+    });
+    // write data to request body
+    req.write('data\n');
+    req.write('data\n');
+    req.end();
+}
+
+var Keys = {
+    HOME: '/keypress/Home',
+    REV: '/keypress/Rev',
+    FWD: '/keypress/Fwd',
+    PLAY: '/keypress/Play',
+    SELECT: '/keypress/Select',
+    LEFT: '/keypress/Left',
+    RIGHT: '/keypress/Right',
+    DOWN: '/keypress/Down',
+    UP: '/keypress/Up',
+    BACK: '/keypress/Back',
+    INSTANTREPLAY: '/keypress/InstantReplay',
+    INFO: '/keypress/Info',
+    BACKSPACE: '/keypress/Backspace',
+    SEARCH: '/keypress/Search',
+    ENTER: '/keypress/Enter',
+    A: '/keypress/Lit_a'
+}
+
+/*
+ * Firebase State Manager
+ */
+myRootRef.on('child_changed', function(childSnapshot, prevChildName) {
+    // code to handle child data changes.
+    var data = childSnapshot.val();
+    var localref = childSnapshot.ref();
+    if (data["state"] == "play") {
+        console.log("Playing Movie");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Play',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "right") {
+        console.log("Press Right Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Right',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "left") {
+        console.log("Press Left Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Left',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "up") {
+        console.log("Press Up Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Up',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "down") {
+        console.log("Press Down Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Down',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "select") {
+        console.log("Press Select Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Select',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+
+    if (data["state"] == "select") {
+        console.log("Press Select Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Play',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "home") {
+        console.log("Press Home Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Home',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+    if (data["state"] == "back") {
+        console.log("Press Back Key");
+        send_message({
+            hostname: data["ip"],
+            port: 8060,
+            path: '/keypress/Back',
+            method: 'POST'
+        });
+        localref.update({
+            "state": "waiting"
+        });
+        console.log("Waiting...");
+    }
+
+});
+console.log("setup on callback");
+
+
+
+
+/*
+ * Shutting down stuff
+ */
 process.stdin.resume(); //so the program will not close instantly
 function delete_fb_entries() {
     return function() {
@@ -87,10 +264,7 @@ function delete_fb_entries() {
     }
 }
 
-/*
-* Remove Entries of Firebase for anything this guy found when app is closing
-*/
-// catches Exit event
+//do something when app is closing
 process.on('exit', delete_fb_entries());
 
 //catches ctrl+c event
