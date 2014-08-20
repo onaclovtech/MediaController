@@ -5,6 +5,9 @@
 // Next we'll do an SSDP search and find any "interesting" devices (particularly your chromecast or roku devices).
 // Needs cleanup but this reports those devices
 //https://www.firebase.com/docs/web/quickstart.html
+
+
+// File Server for the movies
 var connect = require('connect'),
     http = require('http');
 var path_to_share = ''
@@ -30,12 +33,13 @@ for (k in interfaces) {
     }
 }
 
+// Pushing local device out there (so if you're in network you can play movies)
 devices.push(myRootRef.push({
     "type": "local",
     "ip": addresses[0]
 }));
 
-console.log("Found my IP");
+// Roku Discovery Section
 var roku_index
 var dgram = require('dgram'); // dgram is UDP
 // Listen for responses
@@ -100,24 +104,9 @@ function send_message(options) {
     req.end();
 }
 
-var Keys = {
-    HOME: '/keypress/Home',
-    REV: '/keypress/Rev',
-    FWD: '/keypress/Fwd',
-    PLAY: '/keypress/Play',
-    SELECT: '/keypress/Select',
-    LEFT: '/keypress/Left',
-    RIGHT: '/keypress/Right',
-    DOWN: '/keypress/Down',
-    UP: '/keypress/Up',
-    BACK: '/keypress/Back',
-    INSTANTREPLAY: '/keypress/InstantReplay',
-    INFO: '/keypress/Info',
-    BACKSPACE: '/keypress/Backspace',
-    SEARCH: '/keypress/Search',
-    ENTER: '/keypress/Enter',
-    A: '/keypress/Lit_a'
-}
+// Letters can/will be added eventually.
+
+var States = ['Home', 'Rev', 'Fwd', 'Play', 'Select', 'Left', 'Right', 'Down', 'Up', 'Back', 'InstantReplay', 'Info', 'Backspace', 'Search', 'Enter'  ]
 
 /*
  * Firebase State Manager
@@ -126,124 +115,21 @@ myRootRef.on('child_changed', function(childSnapshot, prevChildName) {
     // code to handle child data changes.
     var data = childSnapshot.val();
     var localref = childSnapshot.ref();
-    if (data["state"] == "play") {
-        console.log("Playing Movie");
+    // Send command to roku below
+    if (States.indexOf(data["state"]) >= 0) {
+        console.log('Change State to ' + data["state"]);
         send_message({
             hostname: data["ip"],
             port: 8060,
-            path: '/keypress/Play',
+            path: '/keypress/' + data["state"],
             method: 'POST'
         });
         localref.update({
             "state": "waiting"
         });
-        console.log("Waiting...");
+        console.log("Back to Waiting...");
     }
-    if (data["state"] == "right") {
-        console.log("Press Right Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Right',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "left") {
-        console.log("Press Left Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Left',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "up") {
-        console.log("Press Up Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Up',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "down") {
-        console.log("Press Down Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Down',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "select") {
-        console.log("Press Select Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Select',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-
-    if (data["state"] == "select") {
-        console.log("Press Select Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Play',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "home") {
-        console.log("Press Home Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Home',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
-    if (data["state"] == "back") {
-        console.log("Press Back Key");
-        send_message({
-            hostname: data["ip"],
-            port: 8060,
-            path: '/keypress/Back',
-            method: 'POST'
-        });
-        localref.update({
-            "state": "waiting"
-        });
-        console.log("Waiting...");
-    }
+    
 
 });
 console.log("setup on callback");
